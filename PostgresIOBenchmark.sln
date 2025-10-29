@@ -1,0 +1,60 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.14.36301.6
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresIOBenchmarkLinux", "PostgresIOBenchmark\PostgresIOBenchmarkLinux.csproj", "{1C2B3C6B-5462-4274-8434-472B5069E824}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresBenchmarkCore", "PostgresBenchmarkCore\PostgresBenchmarkCore.csproj", "{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresIOBenchmarkWindowsNative", "PostgresIOBenchmarkWindowsNative\PostgresIOBenchmarkWindowsNative.csproj", "{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PostgresIOBenchmarkLinuxExternal", "PostgresBenchmarkLinuxExternal\PostgresIOBenchmarkLinuxExternal.csproj", "{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}"
+EndProject
+Project("{E53339B2-1760-4266-BCC7-CA923CBCF16C}") = "docker-compose", "docker-compose.dcproj", "{81DDED9D-158B-E303-5F62-77A2896D2A5A}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		NoVariablesDefault|Any CPU = NoVariablesDefault|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.NoVariablesDefault|Any CPU.ActiveCfg = Release|Any CPU
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.NoVariablesDefault|Any CPU.Build.0 = Release|Any CPU
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1C2B3C6B-5462-4274-8434-472B5069E824}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.NoVariablesDefault|Any CPU.ActiveCfg = Release|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.NoVariablesDefault|Any CPU.Build.0 = Release|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72D0814E-9A35-4F65-A92C-4D66C2AF29AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.NoVariablesDefault|Any CPU.ActiveCfg = Release|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.NoVariablesDefault|Any CPU.Build.0 = Release|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1A431337-C63D-436C-ACD0-60EC7D5F0ACB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.NoVariablesDefault|Any CPU.ActiveCfg = Release|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.NoVariablesDefault|Any CPU.Build.0 = Release|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A51D2EC5-1F1E-BD3E-2E4C-AD960512E433}.Release|Any CPU.Build.0 = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.NoVariablesDefault|Any CPU.ActiveCfg = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.NoVariablesDefault|Any CPU.Build.0 = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{81DDED9D-158B-E303-5F62-77A2896D2A5A}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {906F08A2-EB3F-4B79-8954-E55F3B3A69C7}
+	EndGlobalSection
+EndGlobal
