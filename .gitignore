@@ -361,3 +361,5 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
+/PostgresIOBenchmark/benchmark_simpleInsert_internalDatabase_Unix 5.15.146.1.csv
+/PostgresBenchmarkLinuxExternal/benchmark_simpleInsert_externalDatabase_Unix 5.15.146.1.csv
