@@ -363,3 +363,9 @@ MigrationBackup/
 FodyWeavers.xsd
 /PostgresIOBenchmark/benchmark_simpleInsert_internalDatabase_Unix 5.15.146.1.csv
 /PostgresBenchmarkLinuxExternal/benchmark_simpleInsert_externalDatabase_Unix 5.15.146.1.csv
+/PostgresIOBenchmark/benchmark_insert_formats_Unix 5.15.146.1.csv
+/PostgresIOBenchmark/benchmark_insert_points_Unix 5.15.146.1.csv
+/PostgresIOBenchmark/benchmark_simpleRead_externalDatabase_Unix 5.15.146.1.csv
+/PostgresBenchmarkLinuxExternal/benchmark_insert_formats_Unix 5.15.146.1.csv
+/PostgresBenchmarkLinuxExternal/benchmark_insert_points_Unix 5.15.146.1.csv
+/PostgresBenchmarkLinuxExternal/benchmark_simpleRead_externalDatabase_Unix 5.15.146.1.csv
