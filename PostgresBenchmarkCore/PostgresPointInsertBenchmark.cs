@@ -56,16 +56,19 @@ namespace PostgresBenchmarkCore
             int inserted = 0;
             var attrBuffer = new double[attributeCount];
 
+            // Create and prepare once.
+            using var cmd = new NpgsqlCommand("INSERT INTO benchmark_points (x,y,z,attrs) VALUES (@x,@y,@z,@attrs);", _conn);
+            var px = cmd.Parameters.Add(new NpgsqlParameter("x", NpgsqlDbType.Double));
+            var py = cmd.Parameters.Add(new NpgsqlParameter("y", NpgsqlDbType.Double));
+            var pz = cmd.Parameters.Add(new NpgsqlParameter("z", NpgsqlDbType.Double));
+            var pattrs = cmd.Parameters.Add(new NpgsqlParameter("attrs", NpgsqlDbType.Array | NpgsqlDbType.Double));
+            await cmd.PrepareAsync(); // Converts to a prepared statement on the server.
+
+
             while (inserted < totalPoints)
             {
                 await using var tx = await _conn.BeginTransactionAsync();
-                await using var cmd = new NpgsqlCommand(
-                    "INSERT INTO benchmark_points (x,y,z,attrs) VALUES (@x,@y,@z,@attrs);", _conn, tx);
-
-                var px = cmd.Parameters.Add(new NpgsqlParameter("x", NpgsqlDbType.Double));
-                var py = cmd.Parameters.Add(new NpgsqlParameter("y", NpgsqlDbType.Double));
-                var pz = cmd.Parameters.Add(new NpgsqlParameter("z", NpgsqlDbType.Double));
-                var pattrs = cmd.Parameters.Add(new NpgsqlParameter("attrs", NpgsqlDbType.Array | NpgsqlDbType.Double));
+                cmd.Transaction = tx;
 
                 for (int i = 0; i < batchSize && inserted < totalPoints; i++)
                 {
