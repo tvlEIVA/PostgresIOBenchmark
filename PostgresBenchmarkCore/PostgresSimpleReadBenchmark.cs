@@ -1,5 +1,5 @@
-﻿using Npgsql;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Npgsql;
 
 namespace PostgresBenchmarkCore
 {
@@ -13,15 +13,25 @@ namespace PostgresBenchmarkCore
             _conn.Open();
         }
 
-        private async Task EnsureDataAsync(int totalRows, bool populateFirst, int populateBatchSize = 1000)
+        private async Task EnsureDataAsync(
+            int totalRows,
+            bool populateFirst,
+            int populateBatchSize = 1000
+        )
         {
-            await using var countCmd = new NpgsqlCommand("SELECT COUNT(*) FROM benchmarkdata", _conn);
+            await using var countCmd = new NpgsqlCommand(
+                "SELECT COUNT(*) FROM benchmarkdata",
+                _conn
+            );
             var existing = (long)(await countCmd.ExecuteScalarAsync() ?? 0L);
 
-            if (existing >= totalRows) return;
+            if (existing >= totalRows)
+                return;
 
             if (!populateFirst)
-                throw new InvalidOperationException($"Table has {existing} rows but {totalRows} required. Populate first or set populateFirst=true.");
+                throw new InvalidOperationException(
+                    $"Table has {existing} rows but {totalRows} required. Populate first or set populateFirst=true."
+                );
 
             var inserter = new PostgresSimpleInsertBenchmark(_conn.ConnectionString);
             await inserter.CleanDatabase();
@@ -30,7 +40,10 @@ namespace PostgresBenchmarkCore
         }
 
         // Core read benchmark: fetch rows via server-side cursor in chunks of fetchSize
-        public async Task<(double Seconds, double RowsPerSec)> RunReadBenchmark(int totalRows, int fetchSize)
+        public async Task<(double Seconds, double RowsPerSec)> RunReadBenchmark(
+            int totalRows,
+            int fetchSize
+        )
         {
             var sw = Stopwatch.StartNew();
             int rowsRead = 0;
@@ -38,7 +51,13 @@ namespace PostgresBenchmarkCore
             await using (var tx = await _conn.BeginTransactionAsync())
             {
                 // Declare cursor
-                await using (var declare = new NpgsqlCommand("DECLARE benchmark_cursor NO SCROLL CURSOR FOR SELECT id,value1,value2,textvalue FROM benchmarkdata ORDER BY id", _conn, tx))
+                await using (
+                    var declare = new NpgsqlCommand(
+                        "DECLARE benchmark_cursor NO SCROLL CURSOR FOR SELECT id,value1,value2,textvalue FROM benchmarkdata ORDER BY id",
+                        _conn,
+                        tx
+                    )
+                )
                     await declare.ExecuteNonQueryAsync();
 
                 while (rowsRead < totalRows)
@@ -46,7 +65,11 @@ namespace PostgresBenchmarkCore
                     int remaining = totalRows - rowsRead;
                     int thisFetch = remaining < fetchSize ? remaining : fetchSize;
 
-                    await using var fetchCmd = new NpgsqlCommand($"FETCH FORWARD {thisFetch} FROM benchmark_cursor", _conn, tx);
+                    await using var fetchCmd = new NpgsqlCommand(
+                        $"FETCH FORWARD {thisFetch} FROM benchmark_cursor",
+                        _conn,
+                        tx
+                    );
                     await using var reader = await fetchCmd.ExecuteReaderAsync();
 
                     // Materialize columns to simulate realistic access cost
@@ -61,7 +84,7 @@ namespace PostgresBenchmarkCore
                         {
                             string stringVal = reader.GetString(3);
                         }
-                            
+
                         rowsRead++;
                     }
                 }
@@ -79,7 +102,12 @@ namespace PostgresBenchmarkCore
             return (seconds, rate);
         }
 
-        public static async Task Run(string connString, string outputFile, int totalRows = 5000, bool populateFirst = false)
+        public static async Task Run(
+            string connString,
+            string outputFile,
+            int totalRows = 5000,
+            bool populateFirst = false
+        )
         {
             var readBenchmark = new PostgresSimpleReadBenchmark(connString);
 
@@ -90,7 +118,9 @@ namespace PostgresBenchmarkCore
 
             Console.WriteLine("Starting PostgreSQL read benchmark...");
             Console.WriteLine($"Total rows to read per test: {totalRows}");
-            Console.WriteLine($"Testing fetch sizes (cursor FETCH): {string.Join(", ", fetchSizes)}");
+            Console.WriteLine(
+                $"Testing fetch sizes (cursor FETCH): {string.Join(", ", fetchSizes)}"
+            );
             Console.WriteLine();
 
             var results = new List<(int FetchSize, double Seconds, double RowsPerSec)>();
@@ -105,13 +135,21 @@ namespace PostgresBenchmarkCore
 
             Console.WriteLine("\n=== Summary ===");
             foreach (var r in results)
-                Console.WriteLine($"Fetch {r.FetchSize,6}: {r.Seconds,6:F2}s  {r.RowsPerSec,10:F0} rows/s");
+                Console.WriteLine(
+                    $"Fetch {r.FetchSize, 6}: {r.Seconds, 6:F2}s  {r.RowsPerSec, 10:F0} rows/s"
+                );
 
             var best = results.OrderByDescending(r => r.RowsPerSec).First();
-            Console.WriteLine($"\n🏆 Optimal fetch size: {best.FetchSize} rows per FETCH ({best.RowsPerSec:F0} rows/s)");
+            Console.WriteLine(
+                $"\n🏆 Optimal fetch size: {best.FetchSize} rows per FETCH ({best.RowsPerSec:F0} rows/s)"
+            );
 
-            File.WriteAllLines(outputFile, new[] { "FetchSize,Seconds,RowsPerSec" }
-                .Concat(results.Select(r => $"{r.FetchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")));
+            File.WriteAllLines(
+                outputFile,
+                new[] { "FetchSize,Seconds,RowsPerSec" }.Concat(
+                    results.Select(r => $"{r.FetchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")
+                )
+            );
 
             Console.WriteLine($"\nResults saved to {outputFile}");
         }

@@ -1,17 +1,22 @@
-﻿using Npgsql;
-using System.Diagnostics;
+﻿using System.Diagnostics;
+using Npgsql;
 
 namespace PostgresBenchmarkCore
 {
     public class PostgresSimpleInsertBenchmark
     {
         private NpgsqlConnection conn;
+
         public PostgresSimpleInsertBenchmark(string connString)
         {
             conn = new NpgsqlConnection(connString);
             conn.Open();
         }
-        public async Task<(double Seconds, double RowsPerSec)> RunBenchmark(int totalRows, int batchSize)
+
+        public async Task<(double Seconds, double RowsPerSec)> RunBenchmark(
+            int totalRows,
+            int batchSize
+        )
         {
             var stopwatch = Stopwatch.StartNew();
             int rowsInserted = 0;
@@ -25,7 +30,8 @@ namespace PostgresBenchmarkCore
 
                 for (int i = 0; i < batchSize && rowsInserted < totalRows; i++)
                 {
-                    cmd.CommandText = "INSERT INTO benchmarkdata (value1, value2, textvalue) VALUES (@v1, @v2, @v3)";
+                    cmd.CommandText =
+                        "INSERT INTO benchmarkdata (value1, value2, textvalue) VALUES (@v1, @v2, @v3)";
                     cmd.Parameters.Clear();
                     cmd.Parameters.AddWithValue("v1", rowsInserted);
                     cmd.Parameters.AddWithValue("v2", Math.Sin(rowsInserted));
@@ -45,13 +51,17 @@ namespace PostgresBenchmarkCore
 
         public async Task CleanDatabase()
         {
-            await using var cmd = new NpgsqlCommand("TRUNCATE benchmarkdata RESTART IDENTITY", conn);
+            await using var cmd = new NpgsqlCommand(
+                "TRUNCATE benchmarkdata RESTART IDENTITY",
+                conn
+            );
             await cmd.ExecuteNonQueryAsync();
         }
 
         public async Task RecreateBenchmarkTableAsync()
         {
-            const string sql = @"
+            const string sql =
+                @"
                 DROP TABLE IF EXISTS benchmarkdata CASCADE;
 
                 CREATE TABLE benchmarkdata (
@@ -64,7 +74,6 @@ namespace PostgresBenchmarkCore
 
             try
             {
-
                 using var cmd = new NpgsqlCommand(sql, conn);
                 await cmd.ExecuteNonQueryAsync();
 
@@ -78,7 +87,9 @@ namespace PostgresBenchmarkCore
 
         public static async Task Run(string connString, string outputFile, int totalRows = 5000)
         {
-            PostgresSimpleInsertBenchmark simpleInsertBenchmark = new PostgresSimpleInsertBenchmark(connString);
+            PostgresSimpleInsertBenchmark simpleInsertBenchmark = new PostgresSimpleInsertBenchmark(
+                connString
+            );
             await simpleInsertBenchmark.RecreateBenchmarkTableAsync();
             int[] batchSizes = { 1, 10, 50, 100, 500, 1000, 2000, 5000, 10000 };
 
@@ -95,7 +106,10 @@ namespace PostgresBenchmarkCore
             {
                 Console.WriteLine($"=== Batch size: {batchSize} ===");
 
-                var (seconds, rate) = await simpleInsertBenchmark.RunBenchmark(totalRows, batchSize);
+                var (seconds, rate) = await simpleInsertBenchmark.RunBenchmark(
+                    totalRows,
+                    batchSize
+                );
                 results.Add((batchSize, seconds, rate));
 
                 Console.WriteLine($"→ {totalRows} rows in {seconds:F2}s ({rate:F0} rows/s)\n");
@@ -104,16 +118,24 @@ namespace PostgresBenchmarkCore
             // Display summary
             Console.WriteLine("\n=== Summary ===");
             foreach (var r in results)
-                Console.WriteLine($"Batch {r.BatchSize,6}: {r.Seconds,6:F2}s  {r.RowsPerSec,10:F0} rows/s");
+                Console.WriteLine(
+                    $"Batch {r.BatchSize, 6}: {r.Seconds, 6:F2}s  {r.RowsPerSec, 10:F0} rows/s"
+                );
 
             var best = results.OrderByDescending(r => r.RowsPerSec).First();
-            Console.WriteLine($"\n🏆 Optimal batch size: {best.BatchSize} rows per transaction ({best.RowsPerSec:F0} rows/s)");
+            Console.WriteLine(
+                $"\n🏆 Optimal batch size: {best.BatchSize} rows per transaction ({best.RowsPerSec:F0} rows/s)"
+            );
 
             // Optional: write results to CSV
-            File.WriteAllLines(outputFile, new[] { "BatchSize,Seconds,RowsPerSec" }
-                .Concat(results.Select(r => $"{r.BatchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")));
+            File.WriteAllLines(
+                outputFile,
+                new[] { "BatchSize,Seconds,RowsPerSec" }.Concat(
+                    results.Select(r => $"{r.BatchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")
+                )
+            );
 
             Console.WriteLine($"\nResults saved to {outputFile}");
         }
-    }    
+    }
 }

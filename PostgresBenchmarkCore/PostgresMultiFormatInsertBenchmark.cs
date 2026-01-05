@@ -1,6 +1,6 @@
-﻿using Npgsql;
+﻿using System.Diagnostics;
+using Npgsql;
 using NpgsqlTypes;
-using System.Diagnostics;
 
 namespace PostgresBenchmarkCore
 {
@@ -22,7 +22,8 @@ namespace PostgresBenchmarkCore
 
         public async Task RecreateTablesAsync()
         {
-            const string sql = @"
+            const string sql =
+                @"
                 DROP TABLE IF EXISTS benchmarkfloats CASCADE;
                 DROP TABLE IF EXISTS benchmarkfloats_blob CASCADE;
 
@@ -52,16 +53,16 @@ namespace PostgresBenchmarkCore
         private static void FillTenDoubles(int index, double[] buffer)
         {
             // Example deterministic data pattern (cheap math); can be replaced with random if desired.
-            buffer[0]  = index;
-            buffer[1]  = Math.Sin(index);
-            buffer[2]  = Math.Cos(index);
-            buffer[3]  = Math.Sqrt(index + 1);
-            buffer[4]  = index * 0.5;
-            buffer[5]  = index % 97;
-            buffer[6]  = Math.Tanh(index * 0.001);
-            buffer[7]  = Math.Log(index + 2);
-            buffer[8]  = Math.Exp((index % 5) * 0.001);
-            buffer[9]  = (index & 1) == 0 ? 1.0 : -1.0;
+            buffer[0] = index;
+            buffer[1] = Math.Sin(index);
+            buffer[2] = Math.Cos(index);
+            buffer[3] = Math.Sqrt(index + 1);
+            buffer[4] = index * 0.5;
+            buffer[5] = index % 97;
+            buffer[6] = Math.Tanh(index * 0.001);
+            buffer[7] = Math.Log(index + 2);
+            buffer[8] = Math.Exp((index % 5) * 0.001);
+            buffer[9] = (index & 1) == 0 ? 1.0 : -1.0;
         }
 
         private static byte[] PackTenDoubles(double[] src)
@@ -73,7 +74,10 @@ namespace PostgresBenchmarkCore
             return bytes;
         }
 
-        public async Task<(double Seconds, double RowsPerSec)> RunInsertFloatsAsync(int totalRows, int batchSize)
+        public async Task<(double Seconds, double RowsPerSec)> RunInsertFloatsAsync(
+            int totalRows,
+            int batchSize
+        )
         {
             var stopwatch = Stopwatch.StartNew();
             int inserted = 0;
@@ -84,9 +88,13 @@ namespace PostgresBenchmarkCore
                 await using var tx = await _conn.BeginTransactionAsync();
 
                 // Prepare command once per transaction; reuse parameters.
-                await using var cmd = new NpgsqlCommand(@"
+                await using var cmd = new NpgsqlCommand(
+                    @"
                     INSERT INTO benchmarkfloats (f1,f2,f3,f4,f5,f6,f7,f8,f9,f10)
-                    VALUES (@f1,@f2,@f3,@f4,@f5,@f6,@f7,@f8,@f9,@f10);", _conn, tx);
+                    VALUES (@f1,@f2,@f3,@f4,@f5,@f6,@f7,@f8,@f9,@f10);",
+                    _conn,
+                    tx
+                );
 
                 // Define parameters
                 cmd.Parameters.Add(new NpgsqlParameter("f1", NpgsqlDbType.Double));
@@ -99,7 +107,7 @@ namespace PostgresBenchmarkCore
                 cmd.Parameters.Add(new NpgsqlParameter("f8", NpgsqlDbType.Double));
                 cmd.Parameters.Add(new NpgsqlParameter("f9", NpgsqlDbType.Double));
                 cmd.Parameters.Add(new NpgsqlParameter("f10", NpgsqlDbType.Double));
-                
+
                 for (int i = 0; i < batchSize && inserted < totalRows; i++)
                 {
                     FillTenDoubles(inserted, values);
@@ -119,7 +127,10 @@ namespace PostgresBenchmarkCore
             return (seconds, inserted / seconds);
         }
 
-        public async Task<(double Seconds, double RowsPerSec)> RunInsertBlobAsync(int totalRows, int batchSize)
+        public async Task<(double Seconds, double RowsPerSec)> RunInsertBlobAsync(
+            int totalRows,
+            int batchSize
+        )
         {
             var stopwatch = Stopwatch.StartNew();
             int inserted = 0;
@@ -129,8 +140,12 @@ namespace PostgresBenchmarkCore
             {
                 await using var tx = await _conn.BeginTransactionAsync();
 
-                await using var cmd = new NpgsqlCommand(@"
-                    INSERT INTO benchmarkfloats_blob (payload) VALUES (@p);", _conn, tx);
+                await using var cmd = new NpgsqlCommand(
+                    @"
+                    INSERT INTO benchmarkfloats_blob (payload) VALUES (@p);",
+                    _conn,
+                    tx
+                );
 
                 var p = new NpgsqlParameter<byte[]>("p", NpgsqlTypes.NpgsqlDbType.Bytea);
                 cmd.Parameters.Add(p);
@@ -163,8 +178,9 @@ namespace PostgresBenchmarkCore
             Console.WriteLine($"Batch sizes: {string.Join(", ", batchSizes)}");
             Console.WriteLine();
 
-            var results = new List<(string Mode, int BatchSize, double Seconds, double RowsPerSec)>();
-                        
+            var results =
+                new List<(string Mode, int BatchSize, double Seconds, double RowsPerSec)>();
+
             foreach (var batch in batchSizes)
             {
                 Console.WriteLine($"=== Batch {batch} (10 floats columns) ===");
@@ -175,19 +191,26 @@ namespace PostgresBenchmarkCore
                 Console.WriteLine($"=== Batch {batch} (binary blob) ===");
                 var (s2, r2) = await bench.RunInsertBlobAsync(totalRows, batch);
                 Console.WriteLine($"→ {totalRows} rows in {s2:F2}s ({r2:F0} rows/s)\n");
-                results.Add(("blob", batch, s2, r2));               
+                results.Add(("blob", batch, s2, r2));
             }
 
             Console.WriteLine("\n=== Summary ===");
             foreach (var r in results)
-                Console.WriteLine($"{r.Mode,-8} batch {r.BatchSize,5}: {r.Seconds,6:F2}s  {r.RowsPerSec,10:F0} rows/s");
+                Console.WriteLine(
+                    $"{r.Mode, -8} batch {r.BatchSize, 5}: {r.Seconds, 6:F2}s  {r.RowsPerSec, 10:F0} rows/s"
+                );
 
             var best = results.OrderByDescending(r => r.RowsPerSec).First();
-            Console.WriteLine($"\n🏆 Fastest overall: {best.Mode} batch {best.BatchSize} ({best.RowsPerSec:F0} rows/s)");
+            Console.WriteLine(
+                $"\n🏆 Fastest overall: {best.Mode} batch {best.BatchSize} ({best.RowsPerSec:F0} rows/s)"
+            );
 
-            File.WriteAllLines(outputFile,
-                new[] { "Mode,BatchSize,Seconds,RowsPerSec" }
-                .Concat(results.Select(r => $"{r.Mode},{r.BatchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")));
+            File.WriteAllLines(
+                outputFile,
+                new[] { "Mode,BatchSize,Seconds,RowsPerSec" }.Concat(
+                    results.Select(r => $"{r.Mode},{r.BatchSize},{r.Seconds:F3},{r.RowsPerSec:F0}")
+                )
+            );
 
             Console.WriteLine($"\nResults saved to {outputFile}");
         }

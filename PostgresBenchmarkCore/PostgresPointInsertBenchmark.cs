@@ -16,7 +16,8 @@ namespace PostgresBenchmarkCore
 
         public async Task RecreateTablesAsync()
         {
-            const string sql = @"
+            const string sql =
+                @"
                 DROP TABLE IF EXISTS benchmark_points CASCADE;
                 DROP TABLE IF EXISTS benchmark_points_blob CASCADE;
 
@@ -39,7 +40,14 @@ namespace PostgresBenchmarkCore
             await cmd.ExecuteNonQueryAsync();
         }
 
-        private static void FillPoint(int index, int attrCount, double[] attrBuffer, out double x, out double y, out double z)
+        private static void FillPoint(
+            int index,
+            int attrCount,
+            double[] attrBuffer,
+            out double x,
+            out double y,
+            out double z
+        )
         {
             // Deterministic but varied pattern
             x = index * 0.001;
@@ -50,7 +58,11 @@ namespace PostgresBenchmarkCore
         }
 
         // Mode 1: one INSERT per point (inside batched transaction of batchSize points for fairness)
-        public async Task<(double Seconds, double PointsPerSec)> RunPointByPointAsync(int totalPoints, int attributeCount, int batchSize)
+        public async Task<(double Seconds, double PointsPerSec)> RunPointByPointAsync(
+            int totalPoints,
+            int attributeCount,
+            int batchSize
+        )
         {
             var sw = Stopwatch.StartNew();
             int inserted = 0;
@@ -60,16 +72,28 @@ namespace PostgresBenchmarkCore
             {
                 await using var tx = await _conn.BeginTransactionAsync();
                 await using var cmd = new NpgsqlCommand(
-                    "INSERT INTO benchmark_points (x,y,z,attrs) VALUES (@x,@y,@z,@attrs);", _conn, tx);
+                    "INSERT INTO benchmark_points (x,y,z,attrs) VALUES (@x,@y,@z,@attrs);",
+                    _conn,
+                    tx
+                );
 
                 var px = cmd.Parameters.Add(new NpgsqlParameter("x", NpgsqlDbType.Double));
                 var py = cmd.Parameters.Add(new NpgsqlParameter("y", NpgsqlDbType.Double));
                 var pz = cmd.Parameters.Add(new NpgsqlParameter("z", NpgsqlDbType.Double));
-                var pattrs = cmd.Parameters.Add(new NpgsqlParameter("attrs", NpgsqlDbType.Array | NpgsqlDbType.Double));
+                var pattrs = cmd.Parameters.Add(
+                    new NpgsqlParameter("attrs", NpgsqlDbType.Array | NpgsqlDbType.Double)
+                );
 
                 for (int i = 0; i < batchSize && inserted < totalPoints; i++)
                 {
-                    FillPoint(inserted, attributeCount, attrBuffer, out var x, out var y, out var z);
+                    FillPoint(
+                        inserted,
+                        attributeCount,
+                        attrBuffer,
+                        out var x,
+                        out var y,
+                        out var z
+                    );
                     px.Value = x;
                     py.Value = y;
                     pz.Value = z;
@@ -90,7 +114,11 @@ namespace PostgresBenchmarkCore
         }
 
         // Mode 2: multi-row INSERT with batchSize points per statement
-        public async Task<(double Seconds, double PointsPerSec)> RunBatchedRowsAsync(int totalPoints, int attributeCount, int batchSize)
+        public async Task<(double Seconds, double PointsPerSec)> RunBatchedRowsAsync(
+            int totalPoints,
+            int attributeCount,
+            int batchSize
+        )
         {
             var sw = Stopwatch.StartNew();
             int inserted = 0;
@@ -107,19 +135,38 @@ namespace PostgresBenchmarkCore
 
                 for (int i = 0; i < thisBatch; i++)
                 {
-                    if (i > 0) sb.Append(',');
+                    if (i > 0)
+                        sb.Append(',');
                     string suffix = i.ToString();
                     sb.Append($"(@x{suffix},@y{suffix},@z{suffix},@a{suffix})");
 
-                    FillPoint(inserted + i, attributeCount, attrBuffer, out var x, out var y, out var z);
+                    FillPoint(
+                        inserted + i,
+                        attributeCount,
+                        attrBuffer,
+                        out var x,
+                        out var y,
+                        out var z
+                    );
 
-                    cmd.Parameters.Add(new NpgsqlParameter($"x{suffix}", NpgsqlDbType.Double) { Value = x });
-                    cmd.Parameters.Add(new NpgsqlParameter($"y{suffix}", NpgsqlDbType.Double) { Value = y });
-                    cmd.Parameters.Add(new NpgsqlParameter($"z{suffix}", NpgsqlDbType.Double) { Value = z });
+                    cmd.Parameters.Add(
+                        new NpgsqlParameter($"x{suffix}", NpgsqlDbType.Double) { Value = x }
+                    );
+                    cmd.Parameters.Add(
+                        new NpgsqlParameter($"y{suffix}", NpgsqlDbType.Double) { Value = y }
+                    );
+                    cmd.Parameters.Add(
+                        new NpgsqlParameter($"z{suffix}", NpgsqlDbType.Double) { Value = z }
+                    );
 
                     var arr = new double[attributeCount];
                     Array.Copy(attrBuffer, arr, attributeCount);
-                    cmd.Parameters.Add(new NpgsqlParameter($"a{suffix}", NpgsqlDbType.Array | NpgsqlDbType.Double) { Value = arr });
+                    cmd.Parameters.Add(
+                        new NpgsqlParameter($"a{suffix}", NpgsqlDbType.Array | NpgsqlDbType.Double)
+                        {
+                            Value = arr,
+                        }
+                    );
                 }
 
                 cmd.CommandText = sb.ToString();
@@ -138,11 +185,13 @@ namespace PostgresBenchmarkCore
         }
 
         // Mode 3: Binary COPY streaming with optional chunking & transaction control.
-        // copyChunkSize: if >0, splits the load into multiple COPY statements of at most that many rows.
+        // copyChunkSize: if >0, splits the load into multiple COPY statements of at most that many
+        // rows.
         public async Task<(double Seconds, double PointsPerSec)> RunCopyBinaryAsync(
             int totalPoints,
             int attributeCount,
-            int copyChunkSize = 0)
+            int copyChunkSize = 0
+        )
         {
             var sw = Stopwatch.StartNew();
             var attrBuffer = new double[attributeCount];
@@ -155,14 +204,22 @@ namespace PostgresBenchmarkCore
             while (remaining > 0)
             {
                 int thisChunk = chunked ? Math.Min(copyChunkSize, remaining) : remaining;
-                                
+
                 await using var importer = await _conn.BeginBinaryImportAsync(
-                    "COPY benchmark_points (x,y,z,attrs) FROM STDIN (FORMAT BINARY)");
+                    "COPY benchmark_points (x,y,z,attrs) FROM STDIN (FORMAT BINARY)"
+                );
 
                 for (int i = 0; i < thisChunk; i++)
                 {
                     int rowIndex = offset + i;
-                    FillPoint(rowIndex, attributeCount, attrBuffer, out var x, out var y, out var z);
+                    FillPoint(
+                        rowIndex,
+                        attributeCount,
+                        attrBuffer,
+                        out var x,
+                        out var y,
+                        out var z
+                    );
                     await importer.StartRowAsync();
                     await importer.WriteAsync(x, NpgsqlDbType.Double);
                     await importer.WriteAsync(y, NpgsqlDbType.Double);
@@ -171,18 +228,22 @@ namespace PostgresBenchmarkCore
                 }
 
                 await importer.CompleteAsync();
-                                
+
                 offset += thisChunk;
                 remaining -= thisChunk;
             }
-            
+
             sw.Stop();
             double seconds = sw.Elapsed.TotalSeconds;
             return (seconds, totalPoints / seconds);
         }
 
         // Mode 4: Packs groupSize points into one blob row; payload layout is contiguous doubles.
-        public async Task<(double Seconds, double PointsPerSec, int BlobBytes)> RunBlobAsync(int totalPoints, int attributeCount, int groupSize)
+        public async Task<(double Seconds, double PointsPerSec, int BlobBytes)> RunBlobAsync(
+            int totalPoints,
+            int attributeCount,
+            int groupSize
+        )
         {
             var sw = Stopwatch.StartNew();
             int pointsInserted = 0;
@@ -202,11 +263,21 @@ namespace PostgresBenchmarkCore
 
                 for (int i = 0; i < thisGroup; i++)
                 {
-                    FillPoint(pointsInserted + i, attributeCount, attrBuffer, out var x, out var y, out var z);
+                    FillPoint(
+                        pointsInserted + i,
+                        attributeCount,
+                        attrBuffer,
+                        out var x,
+                        out var y,
+                        out var z
+                    );
 
-                    BitConverter.GetBytes(x).CopyTo(payload, offset); offset += 8;
-                    BitConverter.GetBytes(y).CopyTo(payload, offset); offset += 8;
-                    BitConverter.GetBytes(z).CopyTo(payload, offset); offset += 8;
+                    BitConverter.GetBytes(x).CopyTo(payload, offset);
+                    offset += 8;
+                    BitConverter.GetBytes(y).CopyTo(payload, offset);
+                    offset += 8;
+                    BitConverter.GetBytes(z).CopyTo(payload, offset);
+                    offset += 8;
                     for (int a = 0; a < attributeCount; a++)
                         BitConverter.GetBytes(attrBuffer[a]).CopyTo(payload, offset + a * 8);
                     offset += attributeCount * 8;
@@ -214,7 +285,10 @@ namespace PostgresBenchmarkCore
 
                 await using var tx = await _conn.BeginTransactionAsync();
                 await using var cmd = new NpgsqlCommand(
-                    "INSERT INTO benchmark_points_blob (group_size, attr_count, payload) VALUES (@g,@c,@p)", _conn, tx);
+                    "INSERT INTO benchmark_points_blob (group_size, attr_count, payload) VALUES (@g,@c,@p)",
+                    _conn,
+                    tx
+                );
 
                 cmd.Parameters.AddWithValue("g", NpgsqlDbType.Integer, thisGroup);
                 cmd.Parameters.AddWithValue("c", NpgsqlDbType.Integer, attributeCount);
@@ -232,11 +306,14 @@ namespace PostgresBenchmarkCore
             return (seconds, pointsInserted / seconds, blobBytes);
         }
 
-        public static async Task Run(string connString, string outputFile,
+        public static async Task Run(
+            string connString,
+            string outputFile,
             int totalPoints = 200_000,
             int attributeCount = 10,
             int[]? rowBatchSizes = null,
-            int[]? blobGroupSizes = null)
+            int[]? blobGroupSizes = null
+        )
         {
             rowBatchSizes ??= new[] { 1, 10, 50, 100, 250, 500, 1000 };
             blobGroupSizes ??= new[] { 1, 10, 50, 100, 250, 500, 1000 };
@@ -251,13 +328,24 @@ namespace PostgresBenchmarkCore
             Console.WriteLine($"Blob group sizes: {string.Join(", ", blobGroupSizes)}");
             Console.WriteLine();
 
-            var results = new List<(string Mode, int Size, double Seconds, double PointsPerSec, double Extra)>(); // Extra: bytes per point avg for blob
+            var results =
+                new List<(
+                    string Mode,
+                    int Size,
+                    double Seconds,
+                    double PointsPerSec,
+                    double Extra
+                )>(); // Extra: bytes per point avg for blob
 
             // Point-by-point
             foreach (var batch in rowBatchSizes)
             {
                 Console.WriteLine($"=== PointByPoint batchSize={batch} ===");
-                var (sec, rate) = await bench.RunPointByPointAsync(totalPoints, attributeCount, batch);
+                var (sec, rate) = await bench.RunPointByPointAsync(
+                    totalPoints,
+                    attributeCount,
+                    batch
+                );
                 Console.WriteLine($"→ {totalPoints} pts in {sec:F2}s ({rate:F0} pts/s)\n");
                 results.Add(("PointByPoint", batch, sec, rate, 0));
             }
@@ -266,7 +354,11 @@ namespace PostgresBenchmarkCore
             foreach (var batch in rowBatchSizes)
             {
                 Console.WriteLine($"=== BatchedRows batchSize={batch} ===");
-                var (sec, rate) = await bench.RunBatchedRowsAsync(totalPoints, attributeCount, batch);
+                var (sec, rate) = await bench.RunBatchedRowsAsync(
+                    totalPoints,
+                    attributeCount,
+                    batch
+                );
                 Console.WriteLine($"→ {totalPoints} pts in {sec:F2}s ({rate:F0} pts/s)\n");
                 results.Add(("BatchedRows", batch, sec, rate, 0));
             }
@@ -275,7 +367,11 @@ namespace PostgresBenchmarkCore
             foreach (var batch in rowBatchSizes)
             {
                 Console.WriteLine($"=== BinaryCopy (COPY ... FORMAT BINARY) batchSize={batch} ===");
-                var (sec, rate) = await bench.RunCopyBinaryAsync(totalPoints, attributeCount, batch);
+                var (sec, rate) = await bench.RunCopyBinaryAsync(
+                    totalPoints,
+                    attributeCount,
+                    batch
+                );
                 Console.WriteLine($"→ {totalPoints} pts in {sec:F2}s ({rate:F0} pts/s)\n");
                 results.Add(("BinaryCopy", batch, sec, rate, 0));
             }
@@ -284,9 +380,15 @@ namespace PostgresBenchmarkCore
             foreach (var group in blobGroupSizes)
             {
                 Console.WriteLine($"=== BinaryBlob groupSize={group} ===");
-                var (sec, rate, bytes) = await bench.RunBlobAsync(totalPoints, attributeCount, group);
+                var (sec, rate, bytes) = await bench.RunBlobAsync(
+                    totalPoints,
+                    attributeCount,
+                    group
+                );
                 double avgBytesPerPoint = (double)bytes / totalPoints;
-                Console.WriteLine($"→ {totalPoints} pts in {sec:F2}s ({rate:F0} pts/s) avg {avgBytesPerPoint:F1} B/pt\n");
+                Console.WriteLine(
+                    $"→ {totalPoints} pts in {sec:F2}s ({rate:F0} pts/s) avg {avgBytesPerPoint:F1} B/pt\n"
+                );
                 results.Add(("BinaryBlob", group, sec, rate, avgBytesPerPoint));
             }
 
@@ -294,15 +396,24 @@ namespace PostgresBenchmarkCore
             foreach (var r in results)
             {
                 string extra = r.Mode == "BinaryBlob" ? $"{r.Extra:F1}B/pt" : "";
-                Console.WriteLine($"{r.Mode,-12} size {r.Size,4}: {r.Seconds,7:F2}s  {r.PointsPerSec,9:F0} pts/s {extra}");
+                Console.WriteLine(
+                    $"{r.Mode, -12} size {r.Size, 4}: {r.Seconds, 7:F2}s  {r.PointsPerSec, 9:F0} pts/s {extra}"
+                );
             }
 
             var best = results.OrderByDescending(r => r.PointsPerSec).First();
-            Console.WriteLine($"\n🏆 Fastest: {best.Mode} size={best.Size} ({best.PointsPerSec:F0} pts/s)");
+            Console.WriteLine(
+                $"\n🏆 Fastest: {best.Mode} size={best.Size} ({best.PointsPerSec:F0} pts/s)"
+            );
 
-            System.IO.File.WriteAllLines(outputFile,
-                new[] { "Mode,Size,Seconds,PointsPerSec,AvgBytesPerPoint" }
-                .Concat(results.Select(r => $"{r.Mode},{r.Size},{r.Seconds:F3},{r.PointsPerSec:F0},{(r.Mode=="BinaryBlob" ? r.Extra.ToString("F1") : "")}")));
+            System.IO.File.WriteAllLines(
+                outputFile,
+                new[] { "Mode,Size,Seconds,PointsPerSec,AvgBytesPerPoint" }.Concat(
+                    results.Select(r =>
+                        $"{r.Mode},{r.Size},{r.Seconds:F3},{r.PointsPerSec:F0},{(r.Mode == "BinaryBlob" ? r.Extra.ToString("F1") : "")}"
+                    )
+                )
+            );
 
             Console.WriteLine($"\nResults saved to {outputFile}");
         }

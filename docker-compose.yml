@@ -4,7 +4,7 @@ services:
     build:
       context: .
       dockerfile: PostgresIOBenchmark/Dockerfile
-    depends_on: 
+    depends_on:
       - db
 
   db:
@@ -16,7 +16,7 @@ services:
     volumes:
       - pgdata_benchmark:/var/lib/postgresql/data
     ports:
-      - "5437:5432"    
+      - "5437:5432"
 
 volumes:
   pgdata_benchmark:
